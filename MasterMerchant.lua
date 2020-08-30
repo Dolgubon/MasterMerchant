@@ -2328,7 +2328,7 @@ function MasterMerchant:ProcessGuildHistoryResponse(eventCode, guildID, category
   end
 
   --MasterMerchant.dm("Debug", "ProcessGuildHistoryResponse: " .. guildName)
-  for i = ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["numEvents"][guildName], numEvents do
+  for i = MasterMerchant.systemSavedVariables["numEvents"][guildName], numEvents do
     local theEvent = {}
     theEvent.eventType, theEvent.secsSince, theEvent.seller, theEvent.buyer, theEvent.quant, theEvent.itemName, theEvent.salePrice, _, theEvent.id = GetGuildEventInfo(guildID, GUILD_HISTORY_STORE, i)
     theEvent.guild = guildName
@@ -2337,8 +2337,8 @@ function MasterMerchant:ProcessGuildHistoryResponse(eventCode, guildID, category
       erroneousEvent = true
       break
     else
-      if theEvent.secsSince > ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["oldestEvent"][guildID] then
-        ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["oldestEvent"][guildID] = theEvent.secsSince
+      if theEvent.secsSince > MasterMerchant.systemSavedVariables["oldestEvent"][guildID] then
+        MasterMerchant.systemSavedVariables["oldestEvent"][guildID] = theEvent.secsSince
       end
     end
 
@@ -2385,23 +2385,23 @@ function MasterMerchant:ProcessGuildHistoryResponse(eventCode, guildID, category
 
   if erroneousEvent then
     MasterMerchant.v(6, 'Erroneous timestamp for a sales event detected for ' .. guildName .. '.')
-    for i = ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["lastNonDuplicate"][guildName], numEvents do
+    for i = MasterMerchant.systemSavedVariables["lastNonDuplicate"][guildName], numEvents do
       local theEvent = {}
       theEvent.eventType, theEvent.secsSince, theEvent.seller, theEvent.buyer, theEvent.quant, theEvent.itemName, theEvent.salePrice, _, theEvent.id = GetGuildEventInfo(guildID, GUILD_HISTORY_STORE, i)
       if MasterMerchant:CheckForDuplicate(theEvent) then
       else
-        ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["numEvents"][guildName] = i
-        ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["lastNonDuplicate"][guildName] = i
-        ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventIndex"][guildID] = i
-        ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventCount"][guildID] = numEvents
+        MasterMerchant.systemSavedVariables["numEvents"][guildName] = i
+        MasterMerchant.systemSavedVariables["lastNonDuplicate"][guildName] = i
+        MasterMerchant.systemSavedVariables["eventIndex"][guildID] = i
+        MasterMerchant.systemSavedVariables["eventCount"][guildID] = numEvents
         break
       end
     end
   else
-    ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["numEvents"][guildName] = numEvents
-    ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["lastNonDuplicate"][guildName] = numEvents
-    ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventIndex"][guildID] = ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["lastNonDuplicate"][guildName]
-    ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventCount"][guildID] = ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["numEvents"][guildName]
+    MasterMerchant.systemSavedVariables["numEvents"][guildName] = numEvents
+    MasterMerchant.systemSavedVariables["lastNonDuplicate"][guildName] = numEvents
+    MasterMerchant.systemSavedVariables["eventIndex"][guildID] = MasterMerchant.systemSavedVariables["lastNonDuplicate"][guildName]
+    MasterMerchant.systemSavedVariables["eventCount"][guildID] = MasterMerchant.systemSavedVariables["numEvents"][guildName]
     --[[
     OLD METHOD: Queue up another scan in 60 seconds if there maybe
     some more left. One minute because the server will sometimes
@@ -2495,25 +2495,25 @@ function MasterMerchant:DoRefresh()
     local guildID = GetGuildId(i)
     local guildName = GetGuildName(guildID)
     -- eventCount
-    if ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["numEvents"][guildName] < 50 then
-      ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["numEvents"][guildName] = 1
+    if MasterMerchant.systemSavedVariables["numEvents"][guildName] < 50 then
+      MasterMerchant.systemSavedVariables["numEvents"][guildName] = 1
 
-      ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventCount"][guildID] = ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["numEvents"][guildName]
+      MasterMerchant.systemSavedVariables["eventCount"][guildID] = MasterMerchant.systemSavedVariables["numEvents"][guildName]
     else
-      ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["numEvents"][guildName] = ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["numEvents"][guildName] - 50
+      MasterMerchant.systemSavedVariables["numEvents"][guildName] = MasterMerchant.systemSavedVariables["numEvents"][guildName] - 50
 
-      ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventCount"][guildID] = ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["numEvents"][guildName]
+      MasterMerchant.systemSavedVariables["eventCount"][guildID] = MasterMerchant.systemSavedVariables["numEvents"][guildName]
     end
-    MasterMerchant.v(5, "Event tracking index for " .. guildName .. " is now (" .. ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["numEvents"][guildName] .. ").")
+    MasterMerchant.v(5, "Event tracking index for " .. guildName .. " is now (" .. MasterMerchant.systemSavedVariables["numEvents"][guildName] .. ").")
     -- eventIndex
-    if ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["lastNonDuplicate"][guildName] < 50 then
-      ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["lastNonDuplicate"][guildName] = 1
+    if MasterMerchant.systemSavedVariables["lastNonDuplicate"][guildName] < 50 then
+      MasterMerchant.systemSavedVariables["lastNonDuplicate"][guildName] = 1
 
-      ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventIndex"][guildID] = ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["lastNonDuplicate"][guildName]
+      MasterMerchant.systemSavedVariables["eventIndex"][guildID] = MasterMerchant.systemSavedVariables["lastNonDuplicate"][guildName]
     else
-      ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["lastNonDuplicate"][guildName] = ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["lastNonDuplicate"][guildName] - 50
+      MasterMerchant.systemSavedVariables["lastNonDuplicate"][guildName] = MasterMerchant.systemSavedVariables["lastNonDuplicate"][guildName] - 50
 
-      ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventIndex"][guildID] = ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["lastNonDuplicate"][guildName]
+      MasterMerchant.systemSavedVariables["eventIndex"][guildID] = MasterMerchant.systemSavedVariables["lastNonDuplicate"][guildName]
     end
   end
   MasterMerchant.v(4, 'All event tracking indexes decremented by 50.')
