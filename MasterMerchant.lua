@@ -100,9 +100,9 @@ local function UpdateText(controlName, data)
     local control = GetControlByName(controlName)
     local text
     if type(data) == "table" then
-      text = string.format("%s/%s", ZO_CommaDelimitNumber(ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventIndex"][MasterMerchant.currentGuildID]), ZO_CommaDelimitNumber(ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventCount"][MasterMerchant.currentGuildID]))
+      text = string.format("%s/%s", ZO_CommaDelimitNumber(MasterMerchant.systemSavedVariables["eventIndex"][MasterMerchant.currentGuildID]), ZO_CommaDelimitNumber(MasterMerchant.systemSavedVariables["eventCount"][MasterMerchant.currentGuildID]))
     else
-      text = string.format("%s", ZO_FormatTime(ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["oldestEvent"][MasterMerchant.currentGuildID], TIME_FORMAT_STYLE_SHOW_LARGEST_UNIT_DESCRIPTIVE, TIME_FORMAT_PRECISION_TWELVE_HOUR))
+      text = string.format("%s", ZO_FormatTime(MasterMerchant.systemSavedVariables["oldestEvent"][MasterMerchant.currentGuildID], TIME_FORMAT_STYLE_SHOW_LARGEST_UNIT_DESCRIPTIVE, TIME_FORMAT_PRECISION_TWELVE_HOUR))
     end
     control:SetText(text)
 end
@@ -3251,13 +3251,30 @@ function MasterMerchant:Initialize()
     ["oldestEvent"] = {},
   }
 
+  local systemDefault = 
+  {
+    eventIndex = {},
+    eventCount = {},
+    numEvents = {},
+    lastNonDuplicate = {},
+    oldestEvent = {},
+  }
+
+  for i = 1, GetNumGuilds() do
+    local guildID = GetGuildId(i)
+    local guildName = GetGuildName(guildID)
+    systemDefault["numEvents"][guildName] = 1
+    systemDefault["lastNonDuplicate"][guildName] = 1
+    systemDefault["eventIndex"][guildID] = 0
+    systemDefault["eventCount"][guildID] = 0
+    systemDefault["oldestEvent"][guildID] = 0
+  end
   -- Populate savedVariables
   self.savedVariables = ZO_SavedVars:New('ShopkeeperSavedVars', 1, GetDisplayName(), Defaults)
   -- self.acctSavedVariables.scanHistory is no longer used
   self.acctSavedVariables = ZO_SavedVars:NewAccountWide('ShopkeeperSavedVars', 1, GetDisplayName(), acctDefaults)
-  self.systemSavedVariables = ZO_SavedVars:NewAccountWide('ShopkeeperSavedVars', 1, nil, {}, nil, 'MasterMerchant')
-
-  EVENT_MANAGER:RegisterForEvent(MasterMerchant.name.."_Initial", EVENT_PLAYER_ACTIVATED, function(...) MasterMerchant:PlayerLoaded(...) end)
+  self.systemSavedVariables = ZO_SavedVars:NewAccountWide('ShopkeeperSavedVars', 1, nil, systemDefault, nil, 'MasterMerchant')
+  self.currentGuildID = GetGuildId(1) or 0
 
   MasterMerchant:CreateControls()
 
@@ -3636,7 +3653,7 @@ function MasterMerchant:Initialize()
   -- Right, we're all set up, so wait for the player activated event
   -- and then do an initial (deep) scan in case it's been a while since the player
   -- logged on, then use RegisterForUpdate to set up a timed scan.
-	EVENT_MANAGER:RegisterForEvent(MasterMerchant.name.."_DeepScan", EVENT_PLAYER_ACTIVATED, function()
+  EVENT_MANAGER:RegisterForEvent(MasterMerchant.name.."_DeepScan", EVENT_PLAYER_ACTIVATED, function()
 
     EVENT_MANAGER:UnregisterForEvent(MasterMerchant.name.."_DeepScan", EVENT_PLAYER_ACTIVATED )
 
@@ -3706,7 +3723,7 @@ function MasterMerchant:Initialize()
       self:InitScrollLists()
     end
 
-	end)
+  end)
 end
 
 function MasterMerchant:SwitchPrice(control, slot)
@@ -4272,31 +4289,3 @@ end
 
 -- Register for the OnAddOnLoaded event
 EVENT_MANAGER:RegisterForEvent(MasterMerchant.name, EVENT_ADD_ON_LOADED, OnAddOnLoaded)
-
-function MasterMerchant:PlayerLoaded(_, initial)
-    if initial then
-      --MasterMerchant.dm("Debug", "PlayerLoaded")
-      local guildNum = GetNumGuilds()
-      if ShopkeeperSavedVars == nil then ShopkeeperSavedVars = {} end
-      if ShopkeeperSavedVars["Default"] == nil then ShopkeeperSavedVars["Default"] = {} end
-      if ShopkeeperSavedVars["Default"]["MasterMerchant"] == nil then ShopkeeperSavedVars["Default"]["MasterMerchant"] = {} end
-      if ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"] == nil then ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"] = {} end
-      if ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["numEvents"] == nil then ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["numEvents"] = {} end
-      if ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["lastNonDuplicate"] == nil then ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["lastNonDuplicate"] = {} end
-
-      if ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventIndex"] == nil then ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventIndex"] = {} end
-      if ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventCount"] == nil then ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventCount"] = {} end
-      if ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["oldestEvent"] == nil then ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["oldestEvent"] = {} end
-
-      for i = 1, guildNum do
-        local guildID = GetGuildId(i)
-        local guildName = GetGuildName(guildID)
-        ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["numEvents"][guildName] = 1
-        ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["lastNonDuplicate"][guildName] = 1
-        ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventIndex"][guildID] = 0
-        ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["eventCount"][guildID] = 0
-        ShopkeeperSavedVars["Default"]["MasterMerchant"]["$AccountWide"]["oldestEvent"][guildID] = 0
-      end
-    end
-  EVENT_MANAGER:UnregisterForEvent(MasterMerchant.name.."_Initial", EVENT_PLAYER_ACTIVATED)
-end
